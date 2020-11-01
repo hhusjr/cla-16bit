@@ -1,0 +1,49 @@
+`timescale 1ns/1ns
+`define PERIOD 1
+
+module cla_tb();
+	wire [15:0] s;
+	wire co;
+	
+	reg [15:0] a, b;
+	reg ci;
+	
+	reg [15:0] ex_s;
+	reg ex_co;
+	
+	reg [49:0] tvs [10485760:0];
+	reg [22:0] n, e;
+	
+	reg clk;
+	
+	cla cla_mod(.a(a), .b(b), .s(s), .co(co), .ci(ci));
+	
+	initial begin
+		$readmemb("testdata/test_data.tv", tvs);
+		n = 0;
+		e = 0;
+	end
+	
+	always begin
+		clk = 0;
+		#`PERIOD clk = ~clk;
+	end
+	
+	always @(posedge clk) begin
+		{a, b, ci, ex_s, ex_co} = tvs[n];
+	end
+	
+	always @(negedge clk) begin 
+		if (s !== ex_s | co !== ex_co) begin
+			$display("Error #%d: a=%b, b=%b, ci=%b, s=%b, ex_s=%b, co=%b, ex_co=%b", n, a, b, ci, s, ex_s, co, ex_co);
+			e = e + 1;
+		end else begin
+			$display("Test #%d PASS, ERR: %d", n, e);
+		end
+		n = n + 1;
+		if (tvs[n] === 50'bx) begin
+			$display("%d tests completed, ERR: %d.", n, e);
+			$stop;
+		end
+	end
+endmodule
